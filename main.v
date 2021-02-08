@@ -44,16 +44,32 @@ fn (mut m Machine) load(path string) ? {
 	}
 }
 
+fn (m Machine) read_argument(address int) MemoryWord {
+	if address >= 32768 {
+		return m.registers[address - 32768]
+	}
+	return m.memory[address]
+}
+
 fn (mut m Machine) run() {
 	for {
 		op := m.memory[m.pc]
 		match Operation(op) {
+			.jt {
+				a := m.read_argument(m.pc + 1)
+				b := m.read_argument(m.pc + 2)
+				if a != 0 {
+					m.pc = b
+				} else {
+					m.pc++
+				}
+			}
 			.jmp {
-				a := m.memory[m.pc + 1]
+				a := m.read_argument(m.pc + 1)
 				m.pc = a
 			}
 			.out {
-				a := m.memory[m.pc + 1]
+				a := m.read_argument(m.pc + 1)
 				print(rune(a))
 				m.pc += 2
 			}
