@@ -68,6 +68,20 @@ fn (mut m Machine) run() {
 	for {
 		op := m.memory[m.pc]
 		match Operation(op) {
+			.ret {
+				m.pc = m.stack.pop()
+			}
+			.wmem {
+				a := m.read_argument(m.pc + 1)
+				b := m.read_argument(m.pc + 2)
+				m.write_to(a, b)
+				m.pc += 3
+			}
+			.rmem {
+				b := m.read_argument(m.pc + 2)
+				m.write_to(m.pc + 1, m.memory[int(b)])
+				m.pc += 3
+			}
 			.mod {
 				b := m.read_argument(m.pc + 2)
 				c := m.read_argument(m.pc + 3)
