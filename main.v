@@ -45,23 +45,52 @@ fn (mut m Machine) load(path string) ? {
 }
 
 fn (m Machine) read_argument(address int) MemoryWord {
-	if address >= 32768 {
-		return m.registers[address - 32768]
+	val := m.memory[address]
+	if val >= 32768 {
+		return m.registers[val - 32768]
 	}
-	return m.memory[address]
+	return val
+}
+
+fn (mut m Machine) write_to_register(reg int, val MemoryWord) {
+	m.registers[reg - 32768] = val
 }
 
 fn (mut m Machine) run() {
 	for {
 		op := m.memory[m.pc]
 		match Operation(op) {
+			.push {
+				a := m.read_argument(m.pc + 1)
+				m.stack << a
+				m.pc += 2
+			}
+			.pop {
+				a := m.stack.pop()
+				m.pc += 2
+			}
+			.set {
+				a := m.memory[m.pc + 1]
+				b := m.read_argument(m.pc + 2)
+				m.write_to_register(a, b)
+				m.pc += 3
+			}
+			.jf {
+				a := m.read_argument(m.pc + 1)
+				b := m.read_argument(m.pc + 2)
+				if a == 0 {
+					m.pc = b
+				} else {
+					m.pc += 3
+				}
+			}
 			.jt {
 				a := m.read_argument(m.pc + 1)
 				b := m.read_argument(m.pc + 2)
 				if a != 0 {
 					m.pc = b
 				} else {
-					m.pc++
+					m.pc += 3
 				}
 			}
 			.jmp {
@@ -80,8 +109,7 @@ fn (mut m Machine) run() {
 				m.pc++
 			}
 			else {
-				println('op($op) has not been coded yet')
-				m.pc++
+				panic("op($op) not implemented yet")
 			}
 		}
 	}
