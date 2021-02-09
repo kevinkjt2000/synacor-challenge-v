@@ -56,17 +56,84 @@ fn (mut m Machine) write_to_register(reg int, val MemoryWord) {
 	m.registers[reg - 32768] = val
 }
 
+fn (mut m Machine) write_to(address_or_reg int, val MemoryWord) {
+	if m.memory[address_or_reg] >= 32768 {
+		m.registers[m.memory[address_or_reg] - 32768] = val
+	} else {
+		m.memory[address_or_reg] = val
+	}
+}
+
 fn (mut m Machine) run() {
 	for {
 		op := m.memory[m.pc]
 		match Operation(op) {
+			.mod {
+				b := m.read_argument(m.pc + 2)
+				c := m.read_argument(m.pc + 3)
+				m.write_to(m.pc + 1, b % c)
+				m.pc += 4
+			}
+			.mult {
+				b := m.read_argument(m.pc + 2)
+				c := m.read_argument(m.pc + 3)
+				m.write_to(m.pc + 1, (b * c) % 32768)
+				m.pc += 4
+			}
+			.call {
+				m.stack << m.pc + 2
+				m.pc = m.read_argument(m.pc + 1)
+			}
+			.not {
+				b := m.read_argument(m.pc + 2)
+				m.write_to(m.pc + 1, (~u16(b)) & 0x7fff)
+				m.pc += 3
+			}
+			.@or {
+				b := m.read_argument(m.pc + 2)
+				c := m.read_argument(m.pc + 3)
+				m.write_to(m.pc + 1, b | c)
+				m.pc += 4
+			}
+			.and {
+				b := m.read_argument(m.pc + 2)
+				c := m.read_argument(m.pc + 3)
+				m.write_to(m.pc + 1, b & c)
+				m.pc += 4
+			}
+			.gt {
+				b := m.read_argument(m.pc + 2)
+				c := m.read_argument(m.pc + 3)
+				if b > c {
+					m.write_to(m.pc + 1, 1)
+				} else {
+					m.write_to(m.pc + 1, 0)
+				}
+				m.pc += 4
+			}
+			.eq {
+				b := m.read_argument(m.pc + 2)
+				c := m.read_argument(m.pc + 3)
+				if b == c {
+					m.write_to(m.pc + 1, 1)
+				} else {
+					m.write_to(m.pc + 1, 0)
+				}
+				m.pc += 4
+			}
+			.add {
+				b := m.read_argument(m.pc + 2)
+				c := m.read_argument(m.pc + 3)
+				m.write_to(m.pc + 1, (b + c) % 32768)
+				m.pc += 4
+			}
 			.push {
 				a := m.read_argument(m.pc + 1)
 				m.stack << a
 				m.pc += 2
 			}
 			.pop {
-				a := m.stack.pop()
+				m.write_to(m.pc + 1, m.stack.pop())
 				m.pc += 2
 			}
 			.set {
