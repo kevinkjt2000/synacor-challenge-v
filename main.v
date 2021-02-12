@@ -3,6 +3,7 @@ import os
 type MemoryWord = u16
 
 enum Operation {
+	unknown = -1
 	halt = 0
 	set = 1
 	push = 2
@@ -33,6 +34,7 @@ mut:
 	registers [8]MemoryWord
 	stack     []MemoryWord = []MemoryWord{cap: 1000}
 	pc        int
+	input_buffer string
 }
 
 fn (mut m Machine) load(path string) ? {
@@ -68,6 +70,15 @@ fn (mut m Machine) run() {
 	for {
 		op := m.memory[m.pc]
 		match Operation(op) {
+			.@in {
+				if m.input_buffer.len == 0 {
+					m.input_buffer = os.get_raw_line()
+				}
+				char := m.input_buffer[0]
+				m.input_buffer = m.input_buffer[1..]
+				m.write_to(m.pc + 1, char)
+				m.pc += 2
+			}
 			.ret {
 				m.pc = m.stack.pop()
 			}
