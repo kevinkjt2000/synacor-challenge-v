@@ -4,41 +4,41 @@ type MemoryWord = u16
 
 enum Operation {
 	unknown = -1
-	halt = 0
-	set = 1
-	push = 2
-	pop = 3
-	eq = 4
-	gt = 5
-	jmp = 6
-	jt = 7
-	jf = 8
-	add = 9
-	mult = 10
-	mod = 11
-	and = 12
-	@or = 13
-	not = 14
-	rmem = 15
-	wmem = 16
-	call = 17
-	ret = 18
-	out = 19
-	@in = 20
-	nop = 21
+	halt    = 0
+	set     = 1
+	push    = 2
+	pop     = 3
+	eq      = 4
+	gt      = 5
+	jmp     = 6
+	jt      = 7
+	jf      = 8
+	add     = 9
+	mult    = 10
+	mod     = 11
+	and     = 12
+	@or     = 13
+	not     = 14
+	rmem    = 15
+	wmem    = 16
+	call    = 17
+	ret     = 18
+	out     = 19
+	@in     = 20
+	nop     = 21
 }
 
 struct Machine {
 mut:
-	memory    [32768]MemoryWord
-	registers [8]MemoryWord
-	stack     []MemoryWord = []MemoryWord{cap: 1000}
-	pc        int
+	memory       [32768]MemoryWord
+	registers    [8]MemoryWord
+	stack        []MemoryWord = []MemoryWord{cap: 1000}
+	pc           int
 	input_buffer string
 }
 
-fn (mut m Machine) load(path string) ? {
-	byte_code := os.read_file(path) ?
+fn (mut m Machine) load(path string) ! {
+	byte_code := os.read_file(path)!
 	for i in 0 .. (byte_code.len / 2) {
 		low_byte := MemoryWord(byte_code[2 * i])
 		high_byte := MemoryWord(byte_code[2 * i + 1])
@@ -69,14 +69,14 @@ fn (mut m Machine) write_to(address_or_reg int, val MemoryWord) {
 fn (mut m Machine) run() {
 	for {
 		op := m.memory[m.pc]
-		match Operation(op) {
+		match unsafe { Operation(op) } {
 			.@in {
 				if m.input_buffer.len == 0 {
 					m.input_buffer = os.get_raw_line()
 				}
-				char := m.input_buffer[0]
+				ch := m.input_buffer[0]
 				m.input_buffer = m.input_buffer[1..]
-				m.write_to(m.pc + 1, char)
+				m.write_to(m.pc + 1, ch)
 				m.pc += 2
 			}
 			.ret {
@@ -201,7 +201,7 @@ fn (mut m Machine) run() {
 				m.pc++
 			}
 			else {
-				panic("op($op) not implemented yet")
+				panic('op(${op}) not implemented yet')
 			}
 		}
 	}
@@ -209,6 +209,6 @@ fn (mut m Machine) run() {
 
 fn main() {
 	mut m := Machine{}
-	m.load('challenge.bin') ?
+	m.load('challenge.bin')!
 	m.run()
 }
